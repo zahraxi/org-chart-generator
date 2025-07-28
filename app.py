@@ -2,11 +2,10 @@ import streamlit as st
 import pandas as pd
 from xml.etree.ElementTree import Element, SubElement, tostring
 from xml.dom import minidom
+import io  # Added for in-memory file handling
 
 # --- Corporate Theme Settings ---
 st.set_page_config(page_title="Org Chart Generator", layout="wide")
-
-
 
 # --- Corporate Header with local image ---
 col1, col2 = st.columns([10, 1])
@@ -14,7 +13,6 @@ with col1:
     st.markdown("<h1 style='color: #8B1C3F; font-size: 26px; font-weight: 700;'>Organizational Chart Generator</h1>", unsafe_allow_html=True)
 with col2:
     st.image("icon.jpg", width=48)
-# Continue with the rest...
 
 # --- Page Styling ---
 st.markdown("""
@@ -89,14 +87,13 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-
 # --- Instructions ---
 with st.expander("📘 How to Use the Tool", expanded=False):
     st.markdown("""
     ✅ **1. Prepare Your Excel** with the following columns:
-    - `Title` — Employee title  
-    - `Manager Title` — Direct supervisor  
-    - Location columns (e.g., `Riyadh`, `Dammam`) with `1` or `0`  
+    - `Title` — Employee title
+    - `Manager Title` — Direct supervisor
+    - Location columns (e.g., `Riyadh`, `Dammam`) with `1` or `0`
 
     ✅ **2. Upload the Excel File** below.
 
@@ -105,8 +102,8 @@ with st.expander("📘 How to Use the Tool", expanded=False):
     ✅ **4. Download your .drawio File:** and open it at [diagrams.net](https://app.diagrams.net)
 
     ✅ **5. Format on Draw.io:**
-    - Arrange > Layout > Org Chart / Vertical Tree  
-    - Style edges: straight  
+    - Arrange > Layout > Org Chart / Vertical Tree
+    - Style edges: straight
     - Customize boxes and fonts if needed.
     """)
 
@@ -217,18 +214,19 @@ if uploaded_file:
                     root_choice = st.selectbox(f"🔁 Who should '{title}' report to?", options, key=f"{location}_{title}")
                     root_overrides[title] = root_choice
 
+            # Generate XML string
             xml_str = build_drawio_xml(df, location, root_overrides)
-            output_path = f"/mnt/data/org_chart_{location}.drawio"
-            with open(output_path, "w", encoding="utf-8") as f:
-                f.write(xml_str)
-
-            with open(output_path, "rb") as f:
-                st.download_button(
-                    label=f"📥 Download Org Chart for {location}",
-                    data=f,
-                    file_name=f"org_chart_{location}.drawio",
-                    mime="application/xml"
-                )
+            
+            # Use BytesIO for in-memory file handling
+            xml_bytes = io.BytesIO(xml_str.encode('utf-8'))
+            
+            # Provide download button with in-memory file
+            st.download_button(
+                label=f"📥 Download Org Chart for {location}",
+                data=xml_bytes,
+                file_name=f"org_chart_{location}.drawio",
+                mime="application/xml"
+            )
 
 # --- Footer ---
 st.markdown("""
